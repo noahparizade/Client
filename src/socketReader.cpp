@@ -15,6 +15,7 @@ void socketReader::run() {
         // We could also use: connectionHandler.getline(answer) and then get the answer without the newline char at the end
         if (!handler.getLine(answer)) {
             std::cout << "Disconnected. Exiting...\n" << std::endl;
+            break;
         }
 
         int len = answer.length();
