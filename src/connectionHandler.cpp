@@ -72,7 +72,7 @@ bool ConnectionHandler::sendBytes(const char bytes[], int bytesToWrite) {
 }
  
 bool ConnectionHandler::getLine(std::string& line) {
-    return getFrameAscii(line, '\n');
+    return getFrameAscii(line, '\0');
 }
 
 bool ConnectionHandler::sendLine(std::string& line) {
@@ -96,10 +96,7 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
 		if (counter>3){
 		    if (counter==4)
 		        frame.append(1,'\n');
-            if(ch!='\0')
-                frame.append(1, ch);
-            else
-                frame.append(1,' ');
+		    frame.append(1, ch);
 		}
 		else {
 		    bytesArr[counter]=ch;
@@ -223,6 +220,10 @@ short ConnectionHandler::bytesToShort(char *bytesArr) {
     result += (short)(bytesArr[1] & 0xff);
     return result;
 }
+
+bool ConnectionHandler::getTerminate() {return terminate;}
+
+void ConnectionHandler::setTerminate() {terminate=true;}
 
 
 

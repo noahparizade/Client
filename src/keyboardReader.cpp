@@ -9,7 +9,7 @@ using namespace std;
 keyboardReader::keyboardReader(ConnectionHandler& handler): handler(handler){
 }
 void keyboardReader::run() {
-    while (1) {
+    while (!handler.getTerminate()) {
         const short bufsize = 1024;
         char buf[bufsize];
         std::cin.getline(buf, bufsize);
