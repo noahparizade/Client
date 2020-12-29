@@ -14,6 +14,7 @@ private:
 	boost::asio::io_service io_service_;   // Provides core I/O functionality
 	tcp::socket socket_;
 	const std::map<std::string,short> code_map;
+
  
 public:
     ConnectionHandler(std::string host, short port);
@@ -56,6 +57,8 @@ public:
     short getCode(std::string& msg);
 
     std::map<std::string, short> init_map();
+
+    short bytesToShort(char* bytesArr);
  
 }; //class ConnectionHandler
  
