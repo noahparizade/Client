@@ -182,11 +182,11 @@ char * ConnectionHandler::encode(std::string &line) {//todo: finish
         char* bytes=new char[2];
         shortToBytes(code,bytes);
         std::cout<<word2.length()<<std::endl;
-        char* stringArr1=new char[word1.length()+1];
-        strcpy(stringArr1,word1.c_str());
-        char* stringArr2=new char[word2.length()+1];
-        strcpy(stringArr2,word2.c_str());
-        char* combined=new char[2+sizeof(stringArr1)+sizeof(stringArr2)];
+        const char* stringArr1=word1.c_str();
+        const char* stringArr2=word2.c_str();
+        int size=sizeof(sizeof(stringArr1)+sizeof(stringArr2)+2);
+        std::cout<<size<<std::endl;
+        char* combined=new char[size];
         combined[0]=bytes[0];
         combined[1]=bytes[1];
         for (int i=0;i<sizeof(stringArr1)-1;i++){
@@ -194,11 +194,8 @@ char * ConnectionHandler::encode(std::string &line) {//todo: finish
         }
         combined[2+sizeof(stringArr1)-1]='\0';
         for (int i=0;i<sizeof(stringArr2);i++){
-            combined[i+3+sizeof(stringArr1)]=stringArr2[i];
+            combined[i+2+sizeof(stringArr1)]=stringArr2[i];
         }
-        std::cout<<"array1 size "<<sizeof(stringArr1)<<std::endl;
-        std::cout<<"array2 size "<<sizeof(stringArr2)<<std::endl;
-        std::cout<<"combined size "<<sizeof(combined)<<std::endl;
         return combined;
     }
 
