@@ -5,10 +5,10 @@
 
 using namespace std;
 #include <iostream>
-socketReader::socketReader(ConnectionHandler& handler):handler(handler) {}
+socketReader::socketReader(ConnectionHandler& handler, std::mutex& mutex):handler(handler), mutex(mutex) {}
 
 void socketReader::run() {
-
+    mutex.lock();
     while (!handler.getTerminate()) {
         std::string answer;
         // Get back an answer: by using the expected number of bytes (len bytes + newline delimiter)
@@ -24,10 +24,13 @@ void socketReader::run() {
         answer.resize(len - 1);
         if (answer=="ACK 4")
             handler.setTerminate();
+        if (answer=="ERROR 4")
+
         std::cout << answer << std::endl;
         if (answer == "bye") {
             std::cout << "Exiting...\n" << std::endl;
 
         }
     }
+    mutex.unlock();
 }

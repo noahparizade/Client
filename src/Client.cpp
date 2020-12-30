@@ -20,11 +20,12 @@ int main (int argc, char *argv[]) {
         std::cerr << "Cannot connect to " << host << ":" << port << std::endl;
         return 1;
     }
-    keyboardReader keyReader(connectionHandler);
-    socketReader sockReader(connectionHandler);
+    std::mutex mutex;
+    keyboardReader keyReader(connectionHandler, mutex);
+    socketReader sockReader(connectionHandler, mutex);
     std::thread thread1(&keyboardReader::run,keyReader);
     std::thread thread2(&socketReader::run,sockReader);
-    thread1.join();
     thread2.join();
+    thread1.join();
     return 0;
 }
