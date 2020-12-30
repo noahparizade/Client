@@ -54,8 +54,6 @@ bool ConnectionHandler::getBytes(char bytes[], unsigned int bytesToRead) {
 }
 
 bool ConnectionHandler::sendBytes(const char bytes[], int bytesToWrite) {
-    for (int i=0;i<sizeof(bytes);i++)
-        std::cout<<bytes[i]<<std::endl;
     int tmp = 0;
     boost::system::error_code error;
     try {
@@ -76,30 +74,70 @@ bool ConnectionHandler::getLine(std::string& line) {
 }
 
 bool ConnectionHandler::sendLine(std::string& line) {
-    char* bytes=encode(line);
-    return sendBytes(bytes,sizeof(bytes));
+    short code=getCode(line);
+    line=line.substr(line.find(" ")+1,line.length());
+    char* bytes=new char[2];
+    shortToBytes(code,bytes);
+    bool result=sendBytes(bytes,2); //send error if false
+    if (code==4|code==11)
+        return result;
+    const char* bytes2=encode(line,code);
+    return sendBytes(bytes2,sizeof(bytes));
 }
  
 
 bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
-    char ch[1];
+    char ch;
     int counter=0;
     char* bytesArr=new char[4];
+    char* start=new char[4];
+    try {
+        bool result = getBytes(start, 4);
+        if (!result)
+            return false;
+        else {
+            short code = (short) ((start[0] & 0xff) << 8);
+            code += (short) (start[1] & 0xff);
+            short originalCode = (short) ((start[2] & 0xff) << 8);
+            originalCode += (short) (start[3] & 0xff);
+            if (code == 13)//error message
+            {
+                frame.append("ERROR ");
+                frame.append(std::to_string(originalCode));
+                return true;
+            } else {
+                frame.append("ACK ");
+                frame.append(std::to_string(originalCode));
+            }
+        }
+        while (delimiter != ch) {
+            if (!getBytes(&ch, 1))
+                return false;
+            if (ch != '\0')
+                frame.append(1, ch);
+        }
+    }
+    catch (std::exception& e) {
+        std::cerr << "recv failed2 (Error: " << e.what() << ')' << std::endl;
+        return false;
+    }
+    return true;
+
     // Stop when we encounter the null character.
     // Notice that the null character is not appended to the frame string.
-    try {
-	do{
-		if(!getBytes(ch, 1))
-		{
-			return false;
-		}
-		if (counter>3){
-		    if (counter==4)
-		        frame.append(1,'\n');
-		    frame.append(1, ch[0]);
-		}
-		else {
-		    bytesArr[counter]=ch[0];
+   // try {
+	//do{
+	//	if(!getBytes(&ch, 1))
+	//	{
+	//		return false;
+	//	}
+	//	if (counter>3){
+	//	    if (counter==4)
+	//	        frame.append(1,'\n');
+	//	    frame.append(1, ch);
+	//	}
+	//	else {
+	/*	    bytesArr[counter]=ch;
 		    counter++;
 		    if (counter==3){
 		        short num1=bytesToShort(bytesArr);
@@ -113,12 +151,12 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
                 frame.append(std::to_string(num2));
 		    }
 		}
-	}while (delimiter != ch[0]);
+	}while (delimiter != ch);
     } catch (std::exception& e) {
 	std::cerr << "recv failed2 (Error: " << e.what() << ')' << std::endl;
 	return false;
     }
-    std::cout<<frame<<std::endl;
+    std::cout<<frame<<std::endl;*/
     return true;
 }
  
@@ -143,49 +181,31 @@ void ConnectionHandler::shortToBytes(short num, char* bytesArr) {
     bytesArr[1] = (num & 0xFF);
 }
 
-char * ConnectionHandler::encode(std::string &line) {//todo: finish
-    short code=getCode(line);
-    line=line.substr(line.find(" ")+1,line.length());
-    if (code==4|code==1){
+const char * ConnectionHandler::encode(std::string &line, short code) {//todo: finish
+
+    if (code==5|code==6|code==7|code==9|code==10){
         char* bytes=new char[2];
-        shortToBytes(code, bytes);
-        std::cout << bytes << std::endl;
-        return bytes;
-    }
-    else if (code==5|code==6|code==7|code==9|code==10){
-        char* bytes=new char[4];
-        shortToBytes(code,bytes);
         short num=boost::lexical_cast<short>(line);
-        bytes[2]=((num >> 8) & 0xFF);
-        bytes[3]=(num & 0xFF);
-        std::cout << bytes << std::endl;
+        shortToBytes(num,bytes);
         return bytes;
     }
     else if (code==8){
-        char* bytes=new char[2];
-        shortToBytes(code,bytes);
         const char* stringArr=line.c_str();
-        char* combined=new char[2+sizeof(stringArr)+1];
-        combined[0]=bytes[0];
-        combined[1]=bytes[1];
-        for (int i=2;i<sizeof(combined)-1;i++){
-            combined[i]=stringArr[i-2];
-        }
-        combined[sizeof(combined)-1]='\0';
-        std::cout << combined << std::endl;
-        return combined;
+        return stringArr;
     }
     else{
         std::string word1=line.substr(0,line.find(" "));
         std::string word2=line.substr(line.find(" ")+1,line.length());
-        std::cout << "word2 is " << word2 << std::endl;
+        //const char* array=line.c_str();
+        //for (int i=0;i<sizeof(array);i++)
+        //    std::cout<<array[i]<<std::endl;
         char* bytes=new char[2];
         shortToBytes(code,bytes);
-        std::cout<<word2.length()<<std::endl;
         const char* stringArr1=word1.c_str();
         const char* stringArr2=word2.c_str();
+        //for (int i=0;i<sizeof(stringArr2);i++)
+        //    std::cout<<stringArr2[i]<<std::endl;
         int size=sizeof(sizeof(stringArr1)+sizeof(stringArr2)+2);
-        std::cout<<size<<std::endl;
         char* combined=new char[size];
         combined[0]=bytes[0];
         combined[1]=bytes[1];

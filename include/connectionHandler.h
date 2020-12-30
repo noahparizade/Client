@@ -52,7 +52,7 @@ public:
 
     void shortToBytes(short num, char* bytesArr);
 
-    char* encode(std::string& line);
+    const char* encode(std::string& line, short code);
 
     short getCode(std::string& msg);
 
