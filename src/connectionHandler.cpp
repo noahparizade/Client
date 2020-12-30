@@ -55,6 +55,7 @@ bool ConnectionHandler::getBytes(char bytes[], unsigned int bytesToRead) {
 
 bool ConnectionHandler::sendBytes(const char bytes[], int bytesToWrite) {
     int tmp = 0;
+    std::cout<<"num of bytes is "<<bytesToWrite<<std::endl;
     boost::system::error_code error;
     try {
         while (!error && bytesToWrite > tmp ) {
@@ -81,8 +82,22 @@ bool ConnectionHandler::sendLine(std::string& line) {
     bool result=sendBytes(bytes,2); //send error if false
     if (code==4|code==11)
         return result;
-    const char* bytes2=encode(line,code);
-    return sendBytes(bytes2,sizeof(bytes));
+    if (code==1|code==2|code==3) {
+        std::string word1 = line.substr(0, line.find(" "));
+        std::string word2 = line.substr(line.find(" ") + 1, line.length());
+        result = sendBytes(word1.c_str(), word1.length() + 1);
+        result = sendBytes(word2.c_str(), word2.length() + 1);
+    }
+    else if (code==5|code==6|code==7|code==9|code==10){
+        short num=boost::lexical_cast<short>(line);
+        char* numArr=new char[2];
+        shortToBytes(num,numArr);
+        result=sendBytes(numArr,2);
+    }
+    else{
+        result=sendBytes(line.c_str(),line.length()+1);
+    }
+    return result;
 }
  
 
