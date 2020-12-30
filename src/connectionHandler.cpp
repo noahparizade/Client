@@ -21,14 +21,14 @@ ConnectionHandler::~ConnectionHandler() {
 }
  
 bool ConnectionHandler::connect() {
-    std::cout << "Starting connect to " 
-        << host_ << ":" << port_ << std::endl;
+    std::cout << "Starting connect to "
+              << host_ << ":" << port_ << std::endl;
     try {
-		tcp::endpoint endpoint(boost::asio::ip::address::from_string(host_), port_); // the server endpoint
-		boost::system::error_code error;
-		socket_.connect(endpoint, error);
-		if (error)
-			throw boost::system::system_error(error);
+        tcp::endpoint endpoint(boost::asio::ip::address::from_string(host_), port_); // the server endpoint
+        boost::system::error_code error;
+        socket_.connect(endpoint, error);
+        if (error)
+            throw boost::system::system_error(error);
     }
     catch (std::exception& e) {
         std::cerr << "Connection failed (Error: " << e.what() << ')' << std::endl;
@@ -54,20 +54,20 @@ bool ConnectionHandler::getBytes(char bytes[], unsigned int bytesToRead) {
 }
 
 bool ConnectionHandler::sendBytes(const char bytes[], int bytesToWrite) {
+    for (int i=0;i<sizeof(bytes);i++)
+        std::cout<<bytes[i]<<std::endl;
     int tmp = 0;
-	boost::system::error_code error;
+    boost::system::error_code error;
     try {
         while (!error && bytesToWrite > tmp ) {
-			tmp += socket_.write_some(boost::asio::buffer(bytes + tmp, bytesToWrite - tmp), error);
+            tmp += socket_.write_some(boost::asio::buffer(bytes + tmp, bytesToWrite - tmp), error);
         }
-		if(error)
-			throw boost::system::system_error(error);
+        if(error)
+            throw boost::system::system_error(error);
     } catch (std::exception& e) {
         std::cerr << "recv failed (Error: " << e.what() << ')' << std::endl;
-        delete bytes; //todo:check if needed
         return false;
     }
-    delete bytes;
     return true;
 }
  
@@ -77,29 +77,29 @@ bool ConnectionHandler::getLine(std::string& line) {
 
 bool ConnectionHandler::sendLine(std::string& line) {
     char* bytes=encode(line);
-    return sendBytes(bytes,strlen(bytes));
+    return sendBytes(bytes,sizeof(bytes));
 }
  
 
 bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
-    char ch;
+    char ch[1];
     int counter=0;
     char* bytesArr=new char[4];
     // Stop when we encounter the null character.
     // Notice that the null character is not appended to the frame string.
     try {
 	do{
-		if(!getBytes(&ch, 1))
+		if(!getBytes(ch, 1))
 		{
 			return false;
 		}
 		if (counter>3){
 		    if (counter==4)
 		        frame.append(1,'\n');
-		    frame.append(1, ch);
+		    frame.append(1, ch[0]);
 		}
 		else {
-		    bytesArr[counter]=ch;
+		    bytesArr[counter]=ch[0];
 		    counter++;
 		    if (counter==3){
 		        short num1=bytesToShort(bytesArr);
@@ -113,11 +113,12 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
                 frame.append(std::to_string(num2));
 		    }
 		}
-	}while (delimiter != ch);
+	}while (delimiter != ch[0]);
     } catch (std::exception& e) {
 	std::cerr << "recv failed2 (Error: " << e.what() << ')' << std::endl;
 	return false;
     }
+    std::cout<<frame<<std::endl;
     return true;
 }
  
@@ -144,10 +145,11 @@ void ConnectionHandler::shortToBytes(short num, char* bytesArr) {
 
 char * ConnectionHandler::encode(std::string &line) {//todo: finish
     short code=getCode(line);
-    line=line.substr(2,line.length());
+    line=line.substr(line.find(" ")+1,line.length());
     if (code==4|code==1){
         char* bytes=new char[2];
         shortToBytes(code, bytes);
+        std::cout << bytes << std::endl;
         return bytes;
     }
     else if (code==5|code==6|code==7|code==9|code==10){
@@ -156,39 +158,47 @@ char * ConnectionHandler::encode(std::string &line) {//todo: finish
         short num=boost::lexical_cast<short>(line);
         bytes[2]=((num >> 8) & 0xFF);
         bytes[3]=(num & 0xFF);
+        std::cout << bytes << std::endl;
         return bytes;
     }
     else if (code==8){
         char* bytes=new char[2];
         shortToBytes(code,bytes);
         const char* stringArr=line.c_str();
-        char* combined=new char[2+strlen(stringArr)+1];
+        char* combined=new char[2+sizeof(stringArr)+1];
         combined[0]=bytes[0];
         combined[1]=bytes[1];
-        for (int i=2;i<strlen(combined)-1;i++){
+        for (int i=2;i<sizeof(combined)-1;i++){
             combined[i]=stringArr[i-2];
         }
-        combined[strlen(combined)-1]='\0';
+        combined[sizeof(combined)-1]='\0';
+        std::cout << combined << std::endl;
         return combined;
     }
     else{
         std::string word1=line.substr(0,line.find(" "));
         std::string word2=line.substr(line.find(" ")+1,line.length());
+        std::cout << "word2 is " << word2 << std::endl;
         char* bytes=new char[2];
         shortToBytes(code,bytes);
-        const char* stringArr1=word1.c_str();
-        const char* stringArr2=word2.c_str();
-        char* combined=new char[2+strlen(stringArr1)+strlen(stringArr2)+2];
+        std::cout<<word2.length()<<std::endl;
+        char* stringArr1=new char[word1.length()+1];
+        strcpy(stringArr1,word1.c_str());
+        char* stringArr2=new char[word2.length()+1];
+        strcpy(stringArr2,word2.c_str());
+        char* combined=new char[2+sizeof(stringArr1)+sizeof(stringArr2)];
         combined[0]=bytes[0];
         combined[1]=bytes[1];
-        for (int i=0;i<strlen(stringArr1);i++){
+        for (int i=0;i<sizeof(stringArr1)-1;i++){
             combined[i+2]=stringArr1[i];
         }
-        combined[2+strlen(stringArr1)]='\0';
-        for (int i=0;i<strlen(stringArr2);i++){
-            combined[i+3+strlen(stringArr1)]=stringArr2[i];
+        combined[2+sizeof(stringArr1)-1]='\0';
+        for (int i=0;i<sizeof(stringArr2);i++){
+            combined[i+3+sizeof(stringArr1)]=stringArr2[i];
         }
-        combined[strlen(combined)-1]='\0';
+        std::cout<<"array1 size "<<sizeof(stringArr1)<<std::endl;
+        std::cout<<"array2 size "<<sizeof(stringArr2)<<std::endl;
+        std::cout<<"combined size "<<sizeof(combined)<<std::endl;
         return combined;
     }
 
