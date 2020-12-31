@@ -8,8 +8,8 @@ using namespace std;
 socketReader::socketReader(ConnectionHandler& handler, std::mutex& mutex):handler(handler), mutex(mutex) {}
 
 void socketReader::run() {
-    mutex.lock();
-    while (!handler.getTerminate()) {
+
+    while (true) {
         std::string answer;
         // Get back an answer: by using the expected number of bytes (len bytes + newline delimiter)
         // We could also use: connectionHandler.getline(answer) and then get the answer without the newline char at the end
@@ -18,16 +18,16 @@ void socketReader::run() {
             break;
         }
 
-        int len = answer.length();
+        std::cout << answer << std::endl;
         // A C string must end with a 0 char delimiter.  When we filled the answer buffer from the socket
         // we filled up to the \n char - we must make sure now that a 0 char is also present. So we truncate last character.
-        if (answer=="ACK 4")
-            handler.setTerminate();
-        std::cout << answer << std::endl;
-        if (answer == "bye") {
-            std::cout << "Exiting...\n" << std::endl;
-
+        if (answer=="ACK 4"){
+            handler.setTerminate(true);
+            break;
+        }
+        if (answer=="ERROR 4") {
+            handler.setTerminate(false);
         }
     }
-    mutex.unlock();
+
 }

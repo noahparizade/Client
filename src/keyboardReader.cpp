@@ -10,16 +10,20 @@ keyboardReader::keyboardReader(ConnectionHandler& handler, std::mutex& mutex): h
 }
 void keyboardReader::run() {
     std::string prevline="";
-    while (!handler.getTerminate()) {
+    while (true) {
         const short bufsize = 1024;
         char buf[bufsize];
-      //  if (prevline=="LOGOUT"){
-        //    mutex.lock();
-        //}
+        if (prevline=="LOGOUT") {
+            std::future<bool> future=handler.getTerminate().get_future();
+            if (future.get())
+                break;
+            else{
+                handler.resetFuture();
+            }
+        }
         std::cin.getline(buf, bufsize);
         std::string line(buf);
         prevline=line;
-        int len = line.length();
         if (!handler.sendLine(line)) {
             std::cout << "Disconnected. Exiting...\n" << std::endl;
             break;

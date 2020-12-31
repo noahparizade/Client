@@ -14,7 +14,7 @@ using std::string;
 using boost::lexical_cast;
 using boost::bad_lexical_cast;
  
-ConnectionHandler::ConnectionHandler(string host, short port): host_(host), port_(port), io_service_(), socket_(io_service_), code_map(init_map()){}
+ConnectionHandler::ConnectionHandler(string host, short port): host_(host), port_(port), io_service_(), socket_(io_service_), code_map(init_map()), terminate(){}
     
 ConnectionHandler::~ConnectionHandler() {
     close();
@@ -189,9 +189,13 @@ short ConnectionHandler::bytesToShort(char *bytesArr) {
     return result;
 }
 
-bool ConnectionHandler::getTerminate() {return terminate;}
+std::promise<bool>& ConnectionHandler::getTerminate() {return terminate;}
 
-void ConnectionHandler::setTerminate() {terminate=true;}
+void ConnectionHandler::setTerminate(bool result) {terminate.set_value(result);}
+
+void ConnectionHandler::resetFuture() {
+    terminate=std::promise<bool>();
+}
 
 
 

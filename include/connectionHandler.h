@@ -4,7 +4,7 @@
 #include <string>
 #include <iostream>
 #include <boost/asio.hpp>
-
+#include <future>
 using boost::asio::ip::tcp;
 
 class ConnectionHandler {
@@ -14,7 +14,7 @@ private:
 	boost::asio::io_service io_service_;   // Provides core I/O functionality
 	tcp::socket socket_;
 	const std::map<std::string,short> code_map;
-    bool terminate=false;
+    std::promise<bool> terminate;
  
 public:
     ConnectionHandler(std::string host, short port);
@@ -52,7 +52,6 @@ public:
 
     void shortToBytes(short num, char* bytesArr);
 
-    const char* encode(std::string& line, short code);
 
     short getCode(std::string& msg);
 
@@ -60,9 +59,11 @@ public:
 
     short bytesToShort(char* bytesArr);
 
-    bool getTerminate();
+    std::promise<bool>& getTerminate();
 
-    void setTerminate();
+    void setTerminate(bool result);
+
+    void resetFuture();
  
 }; //class ConnectionHandler
  
