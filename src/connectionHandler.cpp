@@ -55,7 +55,6 @@ bool ConnectionHandler::getBytes(char bytes[], unsigned int bytesToRead) {
 
 bool ConnectionHandler::sendBytes(const char bytes[], int bytesToWrite) {
     int tmp = 0;
-    std::cout<<"num of bytes is "<<bytesToWrite<<std::endl;
     boost::system::error_code error;
     try {
         while (!error && bytesToWrite > tmp ) {
@@ -104,7 +103,7 @@ bool ConnectionHandler::sendLine(std::string& line) {
 bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
     char ch='\n';
     int counter=0;
-    char* bytesArr=new char[4];
+    short originalCode;
     char* start=new char[4];
     try {
         bool result = getBytes(start, 4);
@@ -113,7 +112,7 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
         else {
             short code = (short) ((start[0] & 0xff) << 8);
             code += (short) (start[1] & 0xff);
-            short originalCode = (short) ((start[2] & 0xff) << 8);
+            originalCode = (short) ((start[2] & 0xff) << 8);
             originalCode += (short) (start[3] & 0xff);
             if (code == 13)//error message
             {
@@ -125,11 +124,13 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
                 frame.append(std::to_string(originalCode));
             }
         }
-        while (delimiter != ch) {
-            if (!getBytes(&ch, 1))
-                return false;
-            if (ch != '\0')
-                frame.append(1, ch);
+        if (originalCode==11|originalCode==6|originalCode==7|originalCode==8|originalCode==9) {
+            while (delimiter != ch) { //todo:check if extra space after code is important
+                if (!getBytes(&ch, 1))
+                    return false;
+                if (ch != '\0')
+                    frame.append(1, ch);
+            }
         }
     }
     catch (std::exception& e) {
