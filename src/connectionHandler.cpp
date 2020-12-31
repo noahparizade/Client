@@ -85,24 +85,24 @@ bool ConnectionHandler::sendLine(std::string& line) {
     if (code==1|code==2|code==3) {
         std::string word1 = line.substr(0, line.find(" "));
         std::string word2 = line.substr(line.find(" ") + 1, line.length());
-        result = sendBytes(word1.c_str(), word1.length() + 1);
-        result = sendBytes(word2.c_str(), word2.length() + 1);
+        result = result&&sendBytes(word1.c_str(), word1.length() + 1);
+        result = result&&sendBytes(word2.c_str(), word2.length() + 1);
     }
     else if (code==5|code==6|code==7|code==9|code==10){
         short num=boost::lexical_cast<short>(line);
         char* numArr=new char[2];
         shortToBytes(num,numArr);
-        result=sendBytes(numArr,2);
+        result=result&&sendBytes(numArr,2);
     }
     else{
-        result=sendBytes(line.c_str(),line.length()+1);
+        result=result&&sendBytes(line.c_str(),line.length()+1);
     }
     return result;
 }
  
 
 bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
-    char ch;
+    char ch='\n';
     int counter=0;
     char* bytesArr=new char[4];
     char* start=new char[4];
@@ -137,42 +137,6 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
         return false;
     }
     return true;
-
-    // Stop when we encounter the null character.
-    // Notice that the null character is not appended to the frame string.
-   // try {
-	//do{
-	//	if(!getBytes(&ch, 1))
-	//	{
-	//		return false;
-	//	}
-	//	if (counter>3){
-	//	    if (counter==4)
-	//	        frame.append(1,'\n');
-	//	    frame.append(1, ch);
-	//	}
-	//	else {
-	/*	    bytesArr[counter]=ch;
-		    counter++;
-		    if (counter==3){
-		        short num1=bytesToShort(bytesArr);
-		        bytesArr[0]=bytesArr[2];
-		        bytesArr[1]=bytesArr[3];
-		        short num2=bytesToShort(bytesArr);
-		        if (num1==13)
-		            frame.append("ERROR ");
-		        else
-                    frame.append("ACK ");
-                frame.append(std::to_string(num2));
-		    }
-		}
-	}while (delimiter != ch);
-    } catch (std::exception& e) {
-	std::cerr << "recv failed2 (Error: " << e.what() << ')' << std::endl;
-	return false;
-    }
-    std::cout<<frame<<std::endl;*/
-    return true;
 }
  
  
@@ -196,45 +160,6 @@ void ConnectionHandler::shortToBytes(short num, char* bytesArr) {
     bytesArr[1] = (num & 0xFF);
 }
 
-const char * ConnectionHandler::encode(std::string &line, short code) {//todo: finish
-
-    if (code==5|code==6|code==7|code==9|code==10){
-        char* bytes=new char[2];
-        short num=boost::lexical_cast<short>(line);
-        shortToBytes(num,bytes);
-        return bytes;
-    }
-    else if (code==8){
-        const char* stringArr=line.c_str();
-        return stringArr;
-    }
-    else{
-        std::string word1=line.substr(0,line.find(" "));
-        std::string word2=line.substr(line.find(" ")+1,line.length());
-        //const char* array=line.c_str();
-        //for (int i=0;i<sizeof(array);i++)
-        //    std::cout<<array[i]<<std::endl;
-        char* bytes=new char[2];
-        shortToBytes(code,bytes);
-        const char* stringArr1=word1.c_str();
-        const char* stringArr2=word2.c_str();
-        //for (int i=0;i<sizeof(stringArr2);i++)
-        //    std::cout<<stringArr2[i]<<std::endl;
-        int size=sizeof(sizeof(stringArr1)+sizeof(stringArr2)+2);
-        char* combined=new char[size];
-        combined[0]=bytes[0];
-        combined[1]=bytes[1];
-        for (int i=0;i<sizeof(stringArr1)-1;i++){
-            combined[i+2]=stringArr1[i];
-        }
-        combined[2+sizeof(stringArr1)-1]='\0';
-        for (int i=0;i<sizeof(stringArr2);i++){
-            combined[i+2+sizeof(stringArr1)]=stringArr2[i];
-        }
-        return combined;
-    }
-
-}
 
 short ConnectionHandler::getCode(std::string &msg) {
     std::string code=msg.substr(0,msg.find(" "));
