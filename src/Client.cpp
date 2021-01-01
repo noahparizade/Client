@@ -23,8 +23,8 @@ int main (int argc, char *argv[]) {
     std::mutex mutex;
     keyboardReader keyReader(connectionHandler, mutex);
     socketReader sockReader(connectionHandler, mutex);
-    std::thread thread1(&keyboardReader::run,keyReader);
-    std::thread thread2(&socketReader::run,sockReader);
+    std::thread thread1(&keyboardReader::run,&keyReader);
+    std::thread thread2(&socketReader::run,&sockReader);
     thread2.join();
     thread1.join();
     return 0;

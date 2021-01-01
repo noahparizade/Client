@@ -79,8 +79,10 @@ bool ConnectionHandler::sendLine(std::string& line) {
     char* bytes=new char[2];
     shortToBytes(code,bytes);
     bool result=sendBytes(bytes,2); //send error if false
-    if (code==4|code==11)
+    if (code==4|code==11) {
+        delete[] bytes;
         return result;
+    }
     if (code==1|code==2|code==3) {
         std::string word1 = line.substr(0, line.find(" "));
         std::string word2 = line.substr(line.find(" ") + 1, line.length());
@@ -92,10 +94,12 @@ bool ConnectionHandler::sendLine(std::string& line) {
         char* numArr=new char[2];
         shortToBytes(num,numArr);
         result=result&&sendBytes(numArr,2);
+        delete[] numArr;
     }
     else{
         result=result&&sendBytes(line.c_str(),line.length()+1);
     }
+    delete[] bytes;
     return result;
 }
  
@@ -107,8 +111,10 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
     char* start=new char[4];
     try {
         bool result = getBytes(start, 4);
-        if (!result)
+        if (!result) {
+            delete[] start;
             return false;
+        }
         else {
             short code = (short) ((start[0] & 0xff) << 8);
             code += (short) (start[1] & 0xff);
@@ -118,6 +124,7 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
             {
                 frame.append("ERROR ");
                 frame.append(std::to_string(originalCode));
+                delete[] start;
                 return true;
             } else {
                 frame.append("ACK ");
@@ -126,8 +133,10 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
         }
         if (originalCode==11|originalCode==6|originalCode==7|originalCode==8|originalCode==9) {
             while (delimiter != ch) { //todo:check if extra space after code is important
-                if (!getBytes(&ch, 1))
+                if (!getBytes(&ch, 1)) {
+                    delete[] start;
                     return false;
+                }
                 if (ch != '\0')
                     frame.append(1, ch);
             }
@@ -135,8 +144,10 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
     }
     catch (std::exception& e) {
         std::cerr << "recv failed2 (Error: " << e.what() << ')' << std::endl;
+        delete[] start;
         return false;
     }
+    delete[] start;
     return true;
 }
  
