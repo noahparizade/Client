@@ -5,14 +5,13 @@
 #ifndef CLIENT_KEYBOARDREADER_H
 #define CLIENT_KEYBOARDREADER_H
 #include "connectionHandler.h"
-#include <mutex>
+
 class keyboardReader{
 private:
     ConnectionHandler& handler;
-    std::mutex& mutex;
 
 public:
-    keyboardReader(ConnectionHandler& handler, std::mutex& mutex);
+    keyboardReader(ConnectionHandler& handler);
     void run();
 };
 #endif //CLIENT_KEYBOARDREADER_H

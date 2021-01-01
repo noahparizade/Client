@@ -5,7 +5,7 @@
 
 using namespace std;
 #include <iostream>
-socketReader::socketReader(ConnectionHandler& handler, std::mutex& mutex):handler(handler), mutex(mutex) {}
+socketReader::socketReader(ConnectionHandler& handler):handler(handler) {}
 
 void socketReader::run() {
 

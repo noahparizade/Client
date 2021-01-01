@@ -6,7 +6,7 @@
 using namespace std;
 #include <iostream>
 
-keyboardReader::keyboardReader(ConnectionHandler& handler, std::mutex& mutex): handler(handler), mutex(mutex){
+keyboardReader::keyboardReader(ConnectionHandler& handler): handler(handler){
 }
 void keyboardReader::run() {
     std::string prevline="";
