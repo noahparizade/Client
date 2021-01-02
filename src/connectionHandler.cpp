@@ -78,26 +78,48 @@ bool ConnectionHandler::sendLine(std::string& line) {
     line=line.substr(line.find(" ")+1,line.length());
     char* bytes=new char[2];
     shortToBytes(code,bytes);
-    bool result=sendBytes(bytes,2); //send error if false
+    bool result;//send error if false
     if (code==4|code==11) {
+        result=sendBytes(bytes, 2);
         delete[] bytes;
         return result;
     }
     if (code==1|code==2|code==3) {
         std::string word1 = line.substr(0, line.find(" "));
         std::string word2 = line.substr(line.find(" ") + 1, line.length());
-        result = result&&sendBytes(word1.c_str(), word1.length() + 1);
-        result = result&&sendBytes(word2.c_str(), word2.length() + 1);
+        const char* word1bytes=word1.c_str();
+        const char* word2bytes=word2.c_str();
+        char* combined=new char[2+word1.length()+1+word2.length()+1];
+        combined[0]=bytes[0];
+        combined[1]=bytes[1];
+        for (int i=0;i<word1.length()+1;i++){
+            combined[i+2]=word1bytes[i];
+        }
+        for (int i=0;i<word2.length()+1;i++)
+            combined[i+2+word1.length()+1]=word2bytes[i];
+        result=sendBytes(combined,4+word1.length()+word2.length());
+        delete[] combined;
     }
     else if (code==5|code==6|code==7|code==9|code==10){
         short num=boost::lexical_cast<short>(line);
-        char* numArr=new char[2];
-        shortToBytes(num,numArr);
-        result=result&&sendBytes(numArr,2);
+        char* numArr=new char[4];
+        numArr[0]=bytes[0];
+        numArr[1]=bytes[1];
+        numArr[2] = ((num >> 8) & 0xFF);
+        numArr[3] = (num & 0xFF);
+        result=sendBytes(numArr,4);
         delete[] numArr;
     }
     else{
-        result=result&&sendBytes(line.c_str(),line.length()+1);
+        char* combined=new char[2+line.length()+1];
+        combined[0]=bytes[0];
+        combined[1]=bytes[1];
+        const char* word1bytes=line.c_str();
+        for (int i=0;i<line.length()+1;i++){
+            combined[i+2]=word1bytes[i];
+        }
+        result=sendBytes(combined,line.length()+3);
+        delete[] combined;
     }
     delete[] bytes;
     return result;
@@ -110,7 +132,12 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
     short originalCode;
     char* start=new char[4];
     try {
-        bool result = getBytes(start, 4);
+        bool result;
+        while (counter<4) {
+            result = getBytes(&ch, 1);
+            start[counter]=ch;
+            counter++;
+        }
         if (!result) {
             delete[] start;
             return false;

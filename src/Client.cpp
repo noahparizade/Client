@@ -23,9 +23,8 @@ int main (int argc, char *argv[]) {
 
     keyboardReader keyReader(connectionHandler);
     socketReader sockReader(connectionHandler);
-    std::thread thread1(&keyboardReader::run,&keyReader);
     std::thread thread2(&socketReader::run,&sockReader);
+    keyReader.run();
     thread2.join();
-    thread1.join();
     return 0;
 }
