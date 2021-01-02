@@ -21,8 +21,7 @@ ConnectionHandler::~ConnectionHandler() {
 }
  
 bool ConnectionHandler::connect() {
-    std::cout << "Starting connect to "
-              << host_ << ":" << port_ << std::endl;
+
     try {
         tcp::endpoint endpoint(boost::asio::ip::address::from_string(host_), port_); // the server endpoint
         boost::system::error_code error;
@@ -31,9 +30,9 @@ bool ConnectionHandler::connect() {
             throw boost::system::system_error(error);
     }
     catch (std::exception& e) {
-        std::cerr << "Connection failed (Error: " << e.what() << ')' << std::endl;
         return false;
     }
+
     return true;
 }
  
@@ -47,7 +46,7 @@ bool ConnectionHandler::getBytes(char bytes[], unsigned int bytesToRead) {
 		if(error)
 			throw boost::system::system_error(error);
     } catch (std::exception& e) {
-        std::cerr << "recv failed (Error: " << e.what() << ')' << std::endl;
+
         return false;
     }
     return true;
@@ -63,7 +62,6 @@ bool ConnectionHandler::sendBytes(const char bytes[], int bytesToWrite) {
         if(error)
             throw boost::system::system_error(error);
     } catch (std::exception& e) {
-        std::cerr << "recv failed (Error: " << e.what() << ')' << std::endl;
         return false;
     }
     return true;
@@ -79,12 +77,12 @@ bool ConnectionHandler::sendLine(std::string& line) {
     char* bytes=new char[2];
     shortToBytes(code,bytes);
     bool result;//send error if false
-    if (code==4|code==11) {
+    if ((code==4)|(code==11)) {
         result=sendBytes(bytes, 2);
         delete[] bytes;
         return result;
     }
-    if (code==1|code==2|code==3) {
+    if ((code==1)|(code==2)|(code==3)) {
         std::string word1 = line.substr(0, line.find(" "));
         std::string word2 = line.substr(line.find(" ") + 1, line.length());
         const char* word1bytes=word1.c_str();
@@ -92,15 +90,17 @@ bool ConnectionHandler::sendLine(std::string& line) {
         char* combined=new char[2+word1.length()+1+word2.length()+1];
         combined[0]=bytes[0];
         combined[1]=bytes[1];
-        for (int i=0;i<word1.length()+1;i++){
+        int size1=word1.length();
+        for (int i=0;i<size1+1;i++){
             combined[i+2]=word1bytes[i];
         }
-        for (int i=0;i<word2.length()+1;i++)
-            combined[i+2+word1.length()+1]=word2bytes[i];
-        result=sendBytes(combined,4+word1.length()+word2.length());
+        int size2=word2.length();
+        for (int i=0;i<size2+1;i++)
+            combined[i+2+size1+1]=word2bytes[i];
+        result=sendBytes(combined,4+size1+size2);
         delete[] combined;
     }
-    else if (code==5|code==6|code==7|code==9|code==10){
+    else if ((code==5)|(code==6)|(code==7)|(code==9)|(code==10)){
         short num=boost::lexical_cast<short>(line);
         char* numArr=new char[4];
         numArr[0]=bytes[0];
@@ -115,7 +115,8 @@ bool ConnectionHandler::sendLine(std::string& line) {
         combined[0]=bytes[0];
         combined[1]=bytes[1];
         const char* word1bytes=line.c_str();
-        for (int i=0;i<line.length()+1;i++){
+        int size=line.length();
+        for (int i=0;i<size+1;i++){
             combined[i+2]=word1bytes[i];
         }
         result=sendBytes(combined,line.length()+3);
@@ -158,8 +159,8 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
                 frame.append(std::to_string(originalCode));
             }
         }
-        if (originalCode==11|originalCode==6|originalCode==7|originalCode==8|originalCode==9) {
-            while (delimiter != ch) { //todo:check if extra space after code is important
+        if ((originalCode==11)|(originalCode==6)|(originalCode==7)|(originalCode==8)|(originalCode==9)) {
+            while (delimiter != ch) {
                 if (!getBytes(&ch, 1)) {
                     delete[] start;
                     return false;
@@ -170,27 +171,20 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
         }
     }
     catch (std::exception& e) {
-        std::cerr << "recv failed2 (Error: " << e.what() << ')' << std::endl;
         delete[] start;
         return false;
     }
     delete[] start;
     return true;
 }
- 
- 
-bool ConnectionHandler::sendFrameAscii(const std::string& frame, char delimiter) {
-	bool result=sendBytes(frame.c_str(),frame.length());
-	if(!result) return false;
-	return sendBytes(&delimiter,1);
-}
+
  
 // Close down the connection properly.
 void ConnectionHandler::close() {
     try{
         socket_.close();
     } catch (...) {
-        std::cout << "closing failed: connection already closed" << std::endl;
+
     }
 }
 
