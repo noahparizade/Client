@@ -13,12 +13,12 @@ void keyboardReader::run() {
     while (true) {
         const short bufsize = 1024;
         char buf[bufsize];
-        if (prevline=="LOGOUT") {
-            std::future<bool> future=handler.getTerminate().get_future();
-            if (future.get())
-                break;
+        if (prevline=="LOGOUT") { //if LOGOUT was previous line, check if termination is needed
+            std::future<bool> future=handler.getTerminate().get_future(); //gets the future object with the result
+            if (future.get()) //wait until the future object is resolved
+                break; //if true, logout was successful so termination is needed
             else{
-                handler.resetFuture();
+                handler.resetFuture(); //logout was unsuccessful, so new future object is created
             }
         }
         std::cin.getline(buf, bufsize);

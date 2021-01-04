@@ -20,7 +20,7 @@ ConnectionHandler::~ConnectionHandler() {
     close();
 }
  
-bool ConnectionHandler::connect() {
+bool ConnectionHandler::connect() { //connect to the server similar to the echo client example
 
     try {
         tcp::endpoint endpoint(boost::asio::ip::address::from_string(host_), port_); // the server endpoint
@@ -72,17 +72,17 @@ bool ConnectionHandler::getLine(std::string& line) {
 }
 
 bool ConnectionHandler::sendLine(std::string& line) {
-    short code=getCode(line);
+    short code=getCode(line); //finds the opCode of the message
     line=line.substr(line.find(" ")+1,line.length());
     char* bytes=new char[2];
     shortToBytes(code,bytes);
     bool result;//send error if false
-    if ((code==4)|(code==11)) {
+    if ((code==4)|(code==11)) { //LOGOUT or MYCOURSES has no other parameters
         result=sendBytes(bytes, 2);
         delete[] bytes;
         return result;
     }
-    if ((code==1)|(code==2)|(code==3)) {
+    if ((code==1)|(code==2)|(code==3)) {  //messages with 2 string parameters
         std::string word1 = line.substr(0, line.find(" "));
         std::string word2 = line.substr(line.find(" ") + 1, line.length());
         const char* word1bytes=word1.c_str();
@@ -100,8 +100,8 @@ bool ConnectionHandler::sendLine(std::string& line) {
         result=sendBytes(combined,4+size1+size2);
         delete[] combined;
     }
-    else if ((code==5)|(code==6)|(code==7)|(code==9)|(code==10)){
-        short num=boost::lexical_cast<short>(line);
+    else if ((code==5)|(code==6)|(code==7)|(code==9)|(code==10)){ //messages with one short parameter
+        short num=boost::lexical_cast<short>(line); //casting from string to short
         char* numArr=new char[4];
         numArr[0]=bytes[0];
         numArr[1]=bytes[1];
@@ -111,7 +111,7 @@ bool ConnectionHandler::sendLine(std::string& line) {
         delete[] numArr;
     }
     else{
-        char* combined=new char[2+line.length()+1];
+        char* combined=new char[2+line.length()+1]; //messages with one string parameter
         combined[0]=bytes[0];
         combined[1]=bytes[1];
         const char* word1bytes=line.c_str();
@@ -134,7 +134,7 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
     char* start=new char[4];
     try {
         bool result;
-        while (counter<4) {
+        while (counter<4) {  //decode first 4 bytes to get the opCode and original message code
             result = getBytes(&ch, 1);
             start[counter]=ch;
             counter++;
@@ -159,6 +159,7 @@ bool ConnectionHandler::getFrameAscii(std::string& frame, char delimiter) {
                 frame.append(std::to_string(originalCode));
             }
         }
+        //has optional part
         if ((originalCode==11)|(originalCode==6)|(originalCode==7)|(originalCode==8)|(originalCode==9)) {
             while (delimiter != ch) {
                 if (!getBytes(&ch, 1)) {
@@ -199,7 +200,7 @@ short ConnectionHandler::getCode(std::string &msg) {
     return code_map.at(code);
 }
 
-std::map<std::string,short> ConnectionHandler::init_map() {
+std::map<std::string,short> ConnectionHandler::init_map() { //map between command and opCode
     std::map<std::string, short> new_map=std::map<std::string, short>();
     new_map.insert(std::pair<std::string,short>("ADMINREG",1));
     new_map.insert(std::pair<std::string,short>("STUDENTREG",2));
